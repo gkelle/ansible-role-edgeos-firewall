@@ -13,10 +13,15 @@ Role Variables
 --------------
 
 firewall_process_rules: When set to True, firewall rules will be processed. (Default: True)
+
 firewall_process_zones: When set to True, firewall zones will be processed. (Default: True)
+
 firewall_cleanup: When set to True, any firewall settings that do not exist in the firewall_rules variable will be deleted. (Default: False)
+
 firewall_combine_apply: When set to True, all firewall settings will be set at the same time.  This includes cleanup, firewall rules, and firewall zones. (Default: False)
+
 firewall_commit: When set to True, changes will be committed (but not saved.)  A value of False will allow you to see what changes will be made without committing them. (Default: False)
+
 firewall_rules: A list containing firewall rules.  (Default: empty list)
 
 If a rule set uses ipv6, the rule set name should end in "-v6"
