@@ -1,0 +1,11 @@
+---
+# defaults file for ansible-role-edgeos-firewall
+firewall_process_rules: True
+firewall_process_zones: True
+firewall_cleanup: False
+firewall_combine_apply: False
+firewall_commit: False
+firewall_rules: []
+firewall_zones: []
+global_firewall_settings: []
+

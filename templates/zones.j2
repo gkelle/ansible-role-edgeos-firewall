@@ -1,0 +1,42 @@
+{% set query = '[].name' %}
+{% set firewall_ruleset_names = firewall_rules|json_query('[].name') | unique %}
+{% for zone in firewall_zones|default([]) %}
+{% set query = "[?name=='"+zone.name+"' && from==None].properties" %}
+{% set zone_properties = firewall_zones | json_query(query) | flatten %}
+{% set router_zone_properties = router_zone_config_list | json_query(query) | flatten %}
+{% for property in router_zone_properties %}
+{% if property not in zone_properties %}
+delete zone-policy zone {{ zone.name }} {{ property }}
+{% endif %}
+{% endfor %}
+{% for property in zone_properties %}
+set zone-policy zone {{ zone.name }} {{ property }}
+{% endfor %}
+{% endfor %}
+{% set zone_names = firewall_zones|default([]) | json_query('[].name') %}
+{% for zone in firewall_zones|default([]) %}
+{% for target_zone in zone_names %}
+{% set zone_ruleset = zone.name+'-'+target_zone %}
+{% if target_zone != zone.name %}
+{% if zone_ruleset in firewall_ruleset_names %}
+set zone-policy zone {{ target_zone }} from {{ zone.name }} firewall name {{ zone_ruleset }}
+{% else %}
+{% set query = "[?name=='"+target_zone+"' && from=='"+zone.name+"'].properties[].name" %}
+{% set router_zone_ruleset = router_zone_config_list | json_query(query) %}
+{% if router_zone_ruleset | length > 0 %}
+delete zone-policy zone {{ target_zone }} from {{ zone.name }} firewall name {{ zone_ruleset }}
+{% endif %}
+{% endif %}
+{% set zone_ruleset_v6 = zone.name+'-'+target_zone+'-v6' %}
+{% if zone_ruleset_v6 in firewall_ruleset_names %}
+set zone-policy zone {{ target_zone }} from {{ zone.name }} firewall ipv6-name {{ zone_ruleset_v6 }}
+{% else %}
+{% set query = "[?name=='"+target_zone+"' && from=='"+zone.name+"'].properties[].\"ipv6-name\"" %}
+{% set router_zone_ruleset = router_zone_config_list | json_query(query) %}
+{% if router_zone_ruleset | length > 0 %}
+delete zone-policy zone {{ target_zone }} from {{ zone.name }} firewall ipv6-name {{ zone_ruleset_v6 }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}

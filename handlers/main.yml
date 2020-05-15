@@ -1,0 +1,6 @@
+---
+# handlers file for ansible-role-edgeos-firewall
+- name: Save configuration
+  edgeos_config:
+    save: yes
+    backup: yes

@@ -1,0 +1,89 @@
+---
+# tasks file for ansible-role-edgeos-firewall
+- name: Set fact
+  set_fact:
+    router_firewall_config_list: []
+    router_zone_config_list: []
+
+- name: Gather router facts
+  edgeos_facts:
+    gather_subset: all
+
+- name: Populate list of router firewall base properties
+  vars:
+    regex: "set firewall (?:ipv6-){0,1}name ([a-zA-Z0-9-_]+) (?!rule)(.*)"
+  set_fact:
+    router_firewall_config_list: "{{ router_firewall_config_list|default([]) + [{'name':item[0],'properties':[item[1]]}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_rules|bool or firewall_cleanup|bool
+
+- name: Populate list of router firewall rule properties
+  vars:
+    regex: "set firewall (?:ipv6-){0,1}name ([a-zA-Z0-9-_]+) rule (\\d+) (.*)"
+  set_fact:
+    router_firewall_config_list: "{{ router_firewall_config_list|default([]) + [{'name':item[0],'rules':{'name':item[1],'properties':[item[2]]}}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_rules|bool or firewall_cleanup|bool
+
+- name: Populate list of router zone base properties
+  vars:
+    regex: "set zone-policy zone ([a-zA-Z0-9-_]+) (?!from)(.*)"
+  set_fact:
+    router_zone_config_list: "{{ router_zone_config_list|default([]) + [{'name':item[0],'properties':[item[1]]}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_zones|bool
+
+- name: Populate list of router zone properties
+  vars:
+    regex: "set zone-policy zone ([a-zA-Z0-9-_]+) from ([a-zA-Z0-9-_]+) firewall ((?:ipv6-){0,1}name) ([a-zA-Z0-9-_]+)"
+  set_fact:
+    router_zone_config_list: "{{ router_zone_config_list|default([]) + [{'name':item[0],'from':item[1],'properties':[{item[2]:item[3]}]}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_zones|bool
+
+- block:
+  - name: Display cleanup lines
+    vars:
+      lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
+    debug:
+      var: lines
+
+  - name: Display firewall lines
+    vars:
+      lines: "{{ lookup('template', 'firewall_main.j2').splitlines() }}"
+    debug:
+      var: lines
+
+  - name: Display zones lines
+    vars:
+      lines: "{{ lookup('template', 'zones.j2').splitlines() }}"
+    debug:
+      var: lines
+
+  when: not firewall_commit|bool
+
+- block:
+  - name: Clean up firewall rule sets and content that are not in config
+    edgeos_config:
+      lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
+    when: firewall_cleanup|bool
+  
+  - name: Apply firewall rules
+    edgeos_config:
+      lines: "{{ lookup('template', 'firewall_main.j2').splitlines() }}"
+    when: firewall_process_rules|bool
+  
+  - name: Apply zone configuration
+    edgeos_config:
+      lines: "{{ lookup('template', 'zones.j2').splitlines() }}"
+    when: firewall_process_zones
+  when:
+    - not firewall_combine_apply|bool
+    - firewall_commit|bool
+
+- name: Apply all configuration changes
+  edgeos_config:
+    lines: "{{ lookup('template', 'firewall.j2').splitlines() }}"
+  when:
+    - firewall_combine_apply|bool
+    - firewall_commit|bool
