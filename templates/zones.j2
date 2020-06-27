@@ -1,5 +1,5 @@
 {% set query = '[].name' %}
-{% set firewall_ruleset_names = firewall_rules|json_query('[].name') | unique %}
+{% set firewall_ruleset_names = firewall_rules_merged|json_query('[].name') | unique %}
 {% for zone in firewall_zones|default([]) %}
 {% set query = "[?name=='"+zone.name+"' && from==None].properties" %}
 {% set zone_properties = firewall_zones | json_query(query) | flatten %}

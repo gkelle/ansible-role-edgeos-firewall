@@ -1,4 +1,4 @@
-{% for firewall_rule in firewall_rules|default([]) %}
+{% for firewall_rule in firewall_rules_merged|default([]) %}
 {% if firewall_rule.name | regex_search('-v6$') %}
 {% set fw_family='ipv6-name' %}
 {% set effective_options = global_firewall_settings|default([]) | json_query('[].properties_v6') | flatten %}

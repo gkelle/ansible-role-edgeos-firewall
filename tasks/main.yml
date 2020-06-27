@@ -4,6 +4,7 @@
   set_fact:
     router_firewall_config_list: []
     router_zone_config_list: []
+    firewall_rules_merged: "{{ firewall_rules }}"
 
 - name: Gather router facts
   edgeos_facts:
@@ -16,6 +17,23 @@
     router_firewall_config_list: "{{ router_firewall_config_list|default([]) + [{'name':item[0],'properties':[item[1]]}] }}"
   loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
   when: firewall_process_rules|bool or firewall_cleanup|bool
+
+- name: Look up additional firewall rules
+  vars:
+    query: '[].name'
+  set_fact:
+    firewall_rules_extra: "{{ (firewall_rules_extra|default([])) + lookup('vars','firewall_rules_'+item,default=[]) }}"
+  loop: "{{ firewall_zones | json_query(query) }}"
+  when:
+    - firewall_process_rules|bool or firewall_cleanup|bool
+    - lookup('vars','firewall_rules_'+item, default=[])|length > 0
+
+- name: Merge firewall rules
+  set_fact:
+    firewall_rules_merged: "{{ firewall_rules + firewall_rules_extra }}"
+  when:
+    - firewall_process_rules|bool or firewall_cleanup|bool
+    - firewall_rules_extra|default([])|length > 0
 
 - name: Populate list of router firewall rule properties
   vars:
@@ -42,6 +60,13 @@
   when: firewall_process_zones|bool
 
 - block:
+  - name: Display generic lines
+    vars:
+      lines: "{{ firewall_commands }}"
+    debug:
+      var: lines
+    when: firewall_commands|length > 0
+
   - name: Display cleanup lines
     vars:
       lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
@@ -63,6 +88,11 @@
   when: not firewall_commit|bool
 
 - block:
+  - name: Execute generic lines
+    edgeos_config:
+      lines: "{{ firewall_commands }}"
+    when: firewall_commands|length > 0
+
   - name: Clean up firewall rule sets and content that are not in config
     edgeos_config:
       lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
@@ -83,7 +113,7 @@
 
 - name: Apply all configuration changes
   edgeos_config:
-    lines: "{{ lookup('template', 'firewall.j2').splitlines() }}"
+    lines: "{{ firewall_commands + lookup('template', 'firewall.j2').splitlines() }}"
   when:
     - firewall_combine_apply|bool
     - firewall_commit|bool

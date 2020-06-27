@@ -122,6 +122,8 @@ firewall_zones:
       - local-zone
 ```
 
+`firewall_rules_<zone_name>`: A list containing firewall rules. Works the same way as `firewall_rules`, but allows you to use the zone name in the variable.  Handy for organization and splitting rule sets into multiple yaml files.
+
 `global_firewall_settings`: A list of settings that get applied to all firewall rule sets and firewall rules.  (Default: empty list)
 
 Example:
@@ -156,6 +158,16 @@ global_firewall_settings:
           - action drop
           - log enable
           - state invalid enable
+```
+
+`firewall_commands`: A list of generic set commands to run against the router. (Default: empty list)
+
+Example:
+```
+firewall_commands:
+  - set firewall group network-group RFC1918 network 10.0.0.0/8
+  - set firewall group network-group RFC1918 network 172.16.0.0/12
+  - set firewall group network-group RFC1918 network 192.168.0.0/16
 ```
 Example Playbook
 ----------------

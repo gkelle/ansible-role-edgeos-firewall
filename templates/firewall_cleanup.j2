@@ -1,7 +1,7 @@
 {# This template will remove any extra rule sets and rules that exist on the router but not in the config #}
 {% set query = '[].name' %}
 {% set router_firewall_ruleset_names = router_firewall_config_list | json_query(query) | unique %}
-{% set firewall_ruleset_names = firewall_rules|json_query('[].name') | unique %}
+{% set firewall_ruleset_names = firewall_rules_merged|json_query('[].name') | unique %}
 {% for ruleset in router_firewall_ruleset_names | difference(firewall_ruleset_names) %}
 delete firewall {% if ruleset | regex_search('-v6$') %}ipv6-name{% else %}name{% endif %} {{ ruleset }}
 {% endfor %}
@@ -13,7 +13,7 @@ delete firewall {% if ruleset | regex_search('-v6$') %}ipv6-name{% else %}name{%
 {% if ruleset | regex_search('-v6$') %}{% set fw_family='ipv6-name' %}{% set effective_global_ruleset_numbers = global_ruleset_rule_numbers_v6 %}{% else %}{% set fw_family='name' %}{% set effective_global_ruleset_numbers = global_ruleset_rule_numbers %}{% endif %}
 {% set query = "[?name=='"+ruleset+"'].rules[].name" %}
 {% set router_ruleset_rule_numbers = router_firewall_config_list | json_query(query) | unique %}
-{% set ruleset_rule_numbers = firewall_rules | json_query(query) | union(effective_global_ruleset_numbers) | unique %}
+{% set ruleset_rule_numbers = firewall_rules_merged | json_query(query) | union(effective_global_ruleset_numbers) | unique %}
 {% for extraneous_rule in (router_ruleset_rule_numbers | difference(ruleset_rule_numbers | string)) %}
 delete firewall {{ fw_family }} {{ ruleset }} rule {{ extraneous_rule }}
 {% endfor %}
