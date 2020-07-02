@@ -35,6 +35,38 @@
     - firewall_process_rules|bool or firewall_cleanup|bool
     - firewall_rules_extra|default([])|length > 0
 
+- name: Add missing converse rule sets for ipv4
+  vars:
+    fw_zone_names: "{{ firewall_zones | json_query('[].name') }}"
+    fw_ruleset_names: "{{ firewall_rules_merged | json_query('[].name') }}"
+  set_fact:
+    firewall_rules_merged: "{{ firewall_rules_merged + [{'name':item[1]+'-'+item[0]}] }}"
+  with_cartesian:
+    - "{{ fw_zone_names }}"
+    - "{{ fw_zone_names }}"
+  when:
+    - item[0] != item[1]
+    - (item[0]+'-'+item[1]) in fw_ruleset_names
+    - not (item[1]+'-'+item[0]) in fw_ruleset_names
+    - firewall_add_converse_rulesets|bool
+    - firewall_process_rules|bool or firewall_cleanup|bool
+
+- name: Add missing converse rule sets for ipv6
+  vars:
+    fw_zone_names: "{{ firewall_zones | json_query('[].name') }}"
+    fw_ruleset_names: "{{ firewall_rules_merged | json_query('[].name') }}"
+  set_fact:
+    firewall_rules_merged: "{{ firewall_rules_merged + [{'name':item[1]+'-'+item[0]+'-v6'}] }}"
+  with_cartesian:
+    - "{{ fw_zone_names }}"
+    - "{{ fw_zone_names }}"
+  when:
+    - item[0] != item[1]
+    - (item[0]+'-'+item[1]+'-v6') in fw_ruleset_names
+    - not (item[1]+'-'+item[0]+'-v6') in fw_ruleset_names
+    - firewall_add_converse_rulesets_v6|bool
+    - firewall_process_rules|bool or firewall_cleanup|bool
+
 - name: Populate list of router firewall rule properties
   vars:
     regex: "set firewall (?:ipv6-){0,1}name ([a-zA-Z0-9-_]+) rule (\\d+) (.*)"

@@ -124,6 +124,10 @@ firewall_zones:
 
 `firewall_rules_<zone_name>`: A list containing firewall rules. Works the same way as `firewall_rules`, but allows you to use the zone name in the variable.  Handy for organization and splitting rule sets into multiple yaml files.
 
+`firewall_add_converse_rulesets`: Creates rule sets that are in the opposite direction if none exist.  For example, if zones wan and lan exist and there is a rule set for lan-wan, a rule set for wan-lan will be created and it will inherit any rules from `global_firewall_settings`. (Default: `False`)
+
+`firewall_add_converse_rulesets_v6`: Creates ipv6 rule sets that are in the opposite direction if none exist.  For example, if zones wan and lan exist and there is a rule set for lan-wan-v6, a rule set for wan-lan-v6 will be created and it will inherit any rules from `global_firewall_settings`. (Default: `False`)
+
 `global_firewall_settings`: A list of settings that get applied to all firewall rule sets and firewall rules.  (Default: empty list)
 
 Example:
