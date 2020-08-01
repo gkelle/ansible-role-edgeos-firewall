@@ -1,9 +1,9 @@
 {% if firewall_cleanup %}
 {% include 'firewall_cleanup.j2' %}
 {% endif %}
-{% if firewall_apply_rules %}
+{% if firewall_process_rules %}
 {% include 'firewall_main.j2' %}
 {% endif %}
-{% if firewall_apply_zones %}
+{% if firewall_process_zones %}
 {% include 'zones.j2' %}
 {% endif %}
