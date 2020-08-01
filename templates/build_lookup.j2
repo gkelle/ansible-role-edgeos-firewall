@@ -1,0 +1,11 @@
+{% set rules = [] %}
+{% for item in ansible_net_config[0] |regex_findall(regex) | list %}
+{% if populate_type == 'firewall_rule_properties' %}
+{% set _ = rules.append({'name':item[0],'rules':{'name':item[1],'properties':[item[2]]}}) %}
+{% elif populate_type == 'firewall_rule_base_properties' or populate_type == 'zone_base_properties' %}
+{% set _ = rules.append({'name':item[0],'properties':[item[1]]}) %}
+{% elif populate_type == 'zone_properties' %}
+{% set _ = rules.append({'name':item[0],'from':item[1],'properties':[{item[2]:item[3]}]}) %}
+{% endif %}
+{% endfor %}
+{{ rules }}
