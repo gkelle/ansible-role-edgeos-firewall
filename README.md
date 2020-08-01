@@ -16,6 +16,7 @@ Variable                  | Description
 --------------------------|-------------------------------------------------------------------
 `firewall_process_rules`  | When set to `True`, firewall rules will be processed. (Default: `True`)
 `firewall_process_zones`  | When set to `True`, firewall zones will be processed. (Default: `True`)
+`firewall_fast_lookup`    | When set to `True`, a new code base for building a map of the existing ER config will be used. (Default: `False`)
 `firewall_cleanup`        | When set to `True`, any firewall settings that do not exist in the `firewall_rules` variable will be deleted. (Default: `False`)
 `firewall_combine_apply`  | When set to `True`, all firewall settings will be set at the same time.  This includes cleanup, firewall rules, and firewall zones. (Default: `False`)
 `firewall_commit`         | When set to `True`, changes will be committed (but not saved.)  A value of `False` will allow you to see what changes will be made without committing them. (Default: `False`)

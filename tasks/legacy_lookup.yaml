@@ -1,0 +1,31 @@
+- name: Populate list of router firewall base properties
+  vars:
+    regex: "set firewall (?:ipv6-){0,1}name ([a-zA-Z0-9-_]+) (?!rule)(.*)"
+  set_fact:
+    router_firewall_config_list: "{{ router_firewall_config_list|default([]) + [{'name':item[0],'properties':[item[1]]}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_rules|bool or firewall_cleanup|bool
+
+- name: Populate list of router firewall rule properties
+  vars:
+    regex: "set firewall (?:ipv6-){0,1}name ([a-zA-Z0-9-_]+) rule (\\d+) (.*)"
+  set_fact:
+    router_firewall_config_list: "{{ router_firewall_config_list|default([]) + [{'name':item[0],'rules':{'name':item[1],'properties':[item[2]]}}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_rules|bool or firewall_cleanup|bool
+
+- name: Populate list of router zone base properties
+  vars:
+    regex: "set zone-policy zone ([a-zA-Z0-9-_]+) (?!from)(.*)"
+  set_fact:
+    router_zone_config_list: "{{ router_zone_config_list|default([]) + [{'name':item[0],'properties':[item[1]]}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_zones|bool
+
+- name: Populate list of router zone properties
+  vars:
+    regex: "set zone-policy zone ([a-zA-Z0-9-_]+) from ([a-zA-Z0-9-_]+) firewall ((?:ipv6-){0,1}name) ([a-zA-Z0-9-_]+)"
+  set_fact:
+    router_zone_config_list: "{{ router_zone_config_list|default([]) + [{'name':item[0],'from':item[1],'properties':[{item[2]:item[3]}]}] }}"
+  loop: "{{ ansible_net_config[0] |regex_findall(regex) | list }}"
+  when: firewall_process_zones|bool
