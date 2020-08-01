@@ -9,26 +9,10 @@
 {% set effective_rules = (global_firewall_settings|default([]) | json_query('[].rules') | flatten) + firewall_rule.rules|default([]) | unique %}
 {% endif %}
 {% set effective_options = (effective_options + firewall_rule.properties|default([])) | unique %}
-{% set query = "[?name=='"+firewall_rule.name+"'].properties" %}
-{% set router_options = router_firewall_config_list | json_query(query) | flatten %}
-{% for router_option in router_options %}
-{% if router_option not in effective_options %}
-delete firewall {{ fw_family }} {{ firewall_rule.name }} {{ router_option }}
-{% endif %}
-{% endfor %}
 {% for option in effective_options %}
 set firewall {{ fw_family }} {{ firewall_rule.name }} {{ option }}
 {% endfor %}
 {% for ruleset in effective_rules %}
-{% if loop.index == 1 %}
-{% set query = "[?name=='"+firewall_rule.name+"'].rules[?name=='"+ruleset.name|string+"'].properties" %}
-{% set router_rule_options = router_firewall_config_list | json_query(query) | flatten %}
-{% for router_rule_option in router_rule_options %}
-{% if router_rule_option not in ruleset.properties %}
-delete firewall {{ fw_family }} {{ firewall_rule.name }} rule {{ ruleset.name }} {{ router_rule_option }}
-{% endif %}
-{% endfor %}
-{% endif %}
 {% for rule in ruleset.properties|default([]) %}
 set firewall {{ fw_family }} {{ firewall_rule.name }} rule {{ ruleset.name }} {{ rule }}
 {% endfor %}
