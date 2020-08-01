@@ -2,6 +2,7 @@
 {% set query = '[].name' %}
 {% set router_firewall_ruleset_names = router_firewall_config_list | json_query(query) | unique %}
 {% set firewall_ruleset_names = firewall_rules_merged|json_query('[].name') | unique %}
+{# Clean up rule sets that exist on the router but do not exist in the Ansible config #}
 {% for ruleset in router_firewall_ruleset_names | difference(firewall_ruleset_names) %}
 delete firewall {% if ruleset | regex_search('-v6$') %}ipv6-name{% else %}name{% endif %} {{ ruleset }}
 {% endfor %}
@@ -9,12 +10,43 @@ delete firewall {% if ruleset | regex_search('-v6$') %}ipv6-name{% else %}name{%
 {% set global_ruleset_rule_numbers = global_firewall_settings | json_query(query) | unique %}
 {% set query = '[].rules_v6[].name' %}
 {% set global_ruleset_rule_numbers_v6 = global_firewall_settings | json_query(query) | unique %}
+{# Examine all rule sets that are in the router configuration and the Ansible configuration #}
 {% for ruleset in router_firewall_ruleset_names | intersect(firewall_ruleset_names) %}
 {% if ruleset | regex_search('-v6$') %}{% set fw_family='ipv6-name' %}{% set effective_global_ruleset_numbers = global_ruleset_rule_numbers_v6 %}{% else %}{% set fw_family='name' %}{% set effective_global_ruleset_numbers = global_ruleset_rule_numbers %}{% endif %}
 {% set query = "[?name=='"+ruleset+"'].rules[].name" %}
 {% set router_ruleset_rule_numbers = router_firewall_config_list | json_query(query) | unique %}
 {% set ruleset_rule_numbers = firewall_rules_merged | json_query(query) | union(effective_global_ruleset_numbers) | unique %}
+{# Delete any rule set rules that exist on the router only and not in the Ansible configuration #}
 {% for extraneous_rule in (router_ruleset_rule_numbers | difference(ruleset_rule_numbers | string)) %}
 delete firewall {{ fw_family }} {{ ruleset }} rule {{ extraneous_rule }}
+{% endfor %}
+{% endfor %}
+{# Clean up rule set properties and rule properties that exist on router only #}
+{% for firewall_rule in firewall_rules_merged|default([]) %}
+{% if firewall_rule.name | regex_search('-v6$') %}
+{% set fw_family='ipv6-name' %}
+{% set effective_options = global_firewall_settings|default([]) | json_query('[].properties_v6') | flatten %}
+{% set effective_rules = (global_firewall_settings|default([]) | json_query('[].rules_v6') | flatten) + firewall_rule.rules|default([]) | unique %}
+{% else %}
+{% set fw_family='name' %}
+{% set effective_options = global_firewall_settings|default([]) | json_query('[].properties') | flatten %}
+{% set effective_rules = (global_firewall_settings|default([]) | json_query('[].rules') | flatten) + firewall_rule.rules|default([]) | unique %}
+{% endif %}
+{% set effective_options = (effective_options + firewall_rule.properties|default([])) | unique %}
+{% set query = "[?name=='"+firewall_rule.name+"'].properties" %}
+{% set router_options = router_firewall_config_list | json_query(query) | flatten %}
+{% for router_option in router_options %}
+{% if router_option not in effective_options %}
+delete firewall {{ fw_family }} {{ firewall_rule.name }} {{ router_option }}
+{% endif %}
+{% endfor %}
+{% for ruleset in effective_rules %}
+{% set query = "[?name=='"+firewall_rule.name+"'].rules[?name=='"+ruleset.name|string+"'].properties" %}
+{% set router_rule_options = router_firewall_config_list | json_query(query) | flatten %}
+{% for router_rule_option in router_rule_options %}
+{% if router_rule_option not in ruleset.properties %}
+delete firewall {{ fw_family }} {{ firewall_rule.name }} rule {{ ruleset.name }} {{ router_rule_option }}
+{% endif %}
+{% endfor %}
 {% endfor %}
 {% endfor %}
