@@ -1,0 +1,25 @@
+{% set query = '[].name' %}
+{% set firewall_ruleset_names = firewall_rules_merged|json_query('[].name') | unique %}
+{% set zone_names = firewall_zones|default([]) | json_query('[].name') %}
+{% for zone in firewall_zones|default([]) %}
+{% for target_zone in zone_names %}
+{% set zone_ruleset = zone.name+'-'+target_zone %}
+{% if target_zone != zone.name %}
+{% if not zone_ruleset in firewall_ruleset_names %}
+{% set query = "[?name=='"+target_zone+"' && from=='"+zone.name+"'].properties[].name" %}
+{% set router_zone_ruleset = router_zone_config_list | json_query(query) %}
+{% if router_zone_ruleset | length > 0 %}
+delete zone-policy zone {{ target_zone }} from {{ zone.name }} firewall name {{ zone_ruleset }}
+{% endif %}
+{% endif %}
+{% set zone_ruleset_v6 = zone.name+'-'+target_zone+'-v6' %}
+{% if not zone_ruleset_v6 in firewall_ruleset_names %}
+{% set query = "[?name=='"+target_zone+"' && from=='"+zone.name+"'].properties[].\"ipv6-name\"" %}
+{% set router_zone_ruleset = router_zone_config_list | json_query(query) %}
+{% if router_zone_ruleset | length > 0 %}
+delete zone-policy zone {{ target_zone }} from {{ zone.name }} firewall ipv6-name {{ zone_ruleset_v6 }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}

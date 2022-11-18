@@ -1,4 +1,5 @@
 {% if firewall_cleanup %}
+{% include 'zones_firewall_cleanup.j2' %}
 {% include 'firewall_cleanup.j2' %}
 {% endif %}
 {% if firewall_process_rules %}
