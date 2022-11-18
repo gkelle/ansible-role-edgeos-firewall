@@ -105,6 +105,12 @@
       var: lines
     when: firewall_commands|length > 0
 
+  - name: Display cleanup firewall zone lines
+    vars:
+      lines: "{{ lookup('template', 'zones_firewall_cleanup.j2').splitlines() }}"
+    debug:
+      var: lines
+
   - name: Display cleanup lines
     vars:
       lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
@@ -130,6 +136,11 @@
     edgeos_config:
       lines: "{{ firewall_commands }}"
     when: firewall_commands|length > 0
+
+  - name: Clean up zone firewall associations that are not in config
+    edgeos_config:
+      lines: "{{ lookup('template', 'zones_firewall_cleanup.j2').splitlines() }}"
+    when: firewall_cleanup|bool
 
   - name: Clean up firewall rule sets and content that are not in config
     edgeos_config:

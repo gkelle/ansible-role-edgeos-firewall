@@ -20,22 +20,10 @@ set zone-policy zone {{ zone.name }} {{ property }}
 {% if target_zone != zone.name %}
 {% if zone_ruleset in firewall_ruleset_names %}
 set zone-policy zone {{ target_zone }} from {{ zone.name }} firewall name {{ zone_ruleset }}
-{% else %}
-{% set query = "[?name=='"+target_zone+"' && from=='"+zone.name+"'].properties[].name" %}
-{% set router_zone_ruleset = router_zone_config_list | json_query(query) %}
-{% if router_zone_ruleset | length > 0 %}
-delete zone-policy zone {{ target_zone }} from {{ zone.name }} firewall name {{ zone_ruleset }}
-{% endif %}
 {% endif %}
 {% set zone_ruleset_v6 = zone.name+'-'+target_zone+'-v6' %}
 {% if zone_ruleset_v6 in firewall_ruleset_names %}
 set zone-policy zone {{ target_zone }} from {{ zone.name }} firewall ipv6-name {{ zone_ruleset_v6 }}
-{% else %}
-{% set query = "[?name=='"+target_zone+"' && from=='"+zone.name+"'].properties[].\"ipv6-name\"" %}
-{% set router_zone_ruleset = router_zone_config_list | json_query(query) %}
-{% if router_zone_ruleset | length > 0 %}
-delete zone-policy zone {{ target_zone }} from {{ zone.name }} firewall ipv6-name {{ zone_ruleset_v6 }}
-{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}
