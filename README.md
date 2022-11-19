@@ -20,6 +20,7 @@ Variable                  | Description
 `firewall_cleanup`        | When set to `True`, any firewall settings that do not exist in the `firewall_rules` variable will be deleted. (Default: `False`)
 `firewall_combine_apply`  | When set to `True`, all firewall settings will be set at the same time.  This includes cleanup, firewall rules, and firewall zones. (Default: `False`)
 `firewall_commit`         | When set to `True`, changes will be committed (but not saved.)  A value of `False` will allow you to see what changes will be made without committing them. (Default: `False`)
+`firewall_commit_new_only`| When set to `True`, will strip out any rules that already exist on the EdgeRouter when committing. (Default: `True`)
 `firewall_rules`          | A list containing firewall rules.  (Default: empty list)
 
 If a rule set uses ipv6, the rule set name should end in `-v6`.

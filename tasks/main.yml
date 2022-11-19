@@ -98,71 +98,99 @@
   when: not firewall_fast_lookup|bool
 
 - block:
-  - name: Display generic lines
-    vars:
-      lines: "{{ firewall_commands }}"
-    debug:
-      var: lines
-    when: firewall_commands|length > 0
 
-  - name: Display cleanup firewall zone lines
-    vars:
-      lines: "{{ lookup('template', 'zones_firewall_cleanup.j2').splitlines() }}"
-    debug:
-      var: lines
+  - name: Set firewall zone cleanup facts
+    set_fact:
+      firewall_zone_cleanup_lines: "{{ lookup('template', 'zones_firewall_cleanup.j2').splitlines() }}"
+    when:
+      firewall_cleanup|bool
+  - name: Set firewall cleanup facts
+    set_fact:
+      firewall_cleanup_lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
+    when:
+      firewall_cleanup|bool
+  - name: Set firewall rule facts
+    set_fact:
+      firewall_lines: "{{ firewall_commit_new_only|bool|ternary(lookup('template', 'firewall_main.j2').splitlines() | difference(ansible_net_config[0]),lookup('template', 'firewall_main.j2').splitlines()) }}"
+    when:
+      - firewall_process_rules|bool
 
-  - name: Display cleanup lines
-    vars:
-      lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
-    debug:
-      var: lines
+  - name: Set zone facts
+    set_fact:
+      zone_lines: "{{ firewall_commit_new_only|bool|ternary(lookup('template', 'zones.j2').splitlines() | difference(ansible_net_config[0]),lookup('template', 'zones.j2').splitlines() ) }}"
+    when:
+      - firewall_process_zones|bool
 
-  - name: Display firewall lines
-    vars:
-      lines: "{{ lookup('template', 'firewall_main.j2').splitlines() }}"
-    debug:
-      var: lines
+  - block:
+    - name: Display generic lines
+      debug:
+        var: firewall_commands
+      when: firewall_commands|length > 0
 
-  - name: Display zones lines
-    vars:
-      lines: "{{ lookup('template', 'zones.j2').splitlines() }}"
-    debug:
-      var: lines
+    - name: Display cleanup firewall zone lines
+      debug:
+        var: firewall_zone_cleanup_lines
+      when:
+        - firewall_cleanup|bool
+        - firewall_cleanup_lines|default([])|length > 0
 
-  when: not firewall_commit|bool
+    - name: Display cleanup lines
+      debug:
+        var: firewall_cleanup_lines
+      when:
+        - firewall_cleanup|bool
+        - firewall_cleanup_lines|default([])|length > 0
 
-- block:
-  - name: Execute generic lines
-    edgeos_config:
-      lines: "{{ firewall_commands }}"
-    when: firewall_commands|length > 0
+    - name: Display firewall lines
+      debug:
+        var: firewall_lines
+      when:
+        - firewall_lines|default([])|length > 0
 
-  - name: Clean up zone firewall associations that are not in config
-    edgeos_config:
-      lines: "{{ lookup('template', 'zones_firewall_cleanup.j2').splitlines() }}"
-    when: firewall_cleanup|bool
+    - name: Display zones lines
+      debug:
+        var: zone_lines
+      when:
+        - zone_lines|default([])|length > 0
+    when: not firewall_commit|bool
 
-  - name: Clean up firewall rule sets and content that are not in config
-    edgeos_config:
-      lines: "{{ lookup('template', 'firewall_cleanup.j2').splitlines() }}"
-    when: firewall_cleanup|bool
-  
-  - name: Apply firewall rules
-    edgeos_config:
-      lines: "{{ lookup('template', 'firewall_main.j2').splitlines() }}"
-    when: firewall_process_rules|bool
-  
-  - name: Apply zone configuration
-    edgeos_config:
-      lines: "{{ lookup('template', 'zones.j2').splitlines() }}"
-    when: firewall_process_zones
+  - block:
+    - name: Execute generic lines
+      edgeos_config:
+        lines: "{{ firewall_commands }}"
+      when: firewall_commands|length > 0
+
+    - name: Clean up zone firewall associations that are not in config
+      edgeos_config:
+        lines: "{{ firewall_zone_cleanup_lines }}"
+      when: firewall_cleanup|bool
+
+    - name: Clean up firewall rule sets and content that are not in config
+      edgeos_config:
+        lines: "{{ firewall_cleanup_lines }}"
+      when: firewall_cleanup|bool
+
+    - name: Apply firewall rules
+      edgeos_config:
+        lines: "{{ firewall_lines }}"
+      when:
+        - firewall_process_rules|bool
+        - firewall_lines|length > 0
+
+    - name: Apply zone configuration
+      edgeos_config:
+        lines: "{{ zone_lines }}"
+      when:
+        - firewall_process_zones|bool
+        - zone_lines|length > 0
+    when:
+      - firewall_commit|bool
   when:
     - not firewall_combine_apply|bool
-    - firewall_commit|bool
 
 - name: Apply all configuration changes
   edgeos_config:
-    lines: "{{ firewall_commands + lookup('template', 'firewall.j2').splitlines() }}"
+    lines: "{{ firewall_commands + (lookup('template', 'firewall.j2').splitlines() | difference(ansible_net_config[0])) }}"
   when:
     - firewall_combine_apply|bool
     - firewall_commit|bool
