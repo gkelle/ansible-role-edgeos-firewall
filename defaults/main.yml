@@ -2,6 +2,7 @@
 # defaults file for ansible-role-edgeos-firewall
 firewall_process_rules: True
 firewall_process_zones: True
+firewall_commit_new_only: True
 firewall_fast_lookup: False
 firewall_add_converse_rulesets: False
 firewall_add_converse_rulesets_v6: False
