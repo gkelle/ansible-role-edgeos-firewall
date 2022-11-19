@@ -1,0 +1,14 @@
+{% set converse_rules=[] %}
+{% for zone in fw_zone_names | product(fw_zone_names) | list %}
+{% set zone_left = zone.0 %}
+{% set zone_right = zone.1 %}
+{% if zone_left != zone_right %}
+{% if firewall_add_converse_rulesets|bool and (zone_left+'-'+zone_right) in fw_ruleset_names and not (zone_right+'-'+zone_left) in fw_ruleset_names %}
+{% set _ = converse_rules.append(zone_right+'-'+zone_left) %}
+{% endif %}
+{% if firewall_add_converse_rulesets_v6|bool and (zone_left+'-'+zone_right+'-v6') in fw_ruleset_names and not (zone_right+'-'+zone_left+'-v6') in fw_ruleset_names %}
+{% set _ = converse_rules.append(zone_right+'-'+zone_left+'-v6') %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{{ converse_rules }}
